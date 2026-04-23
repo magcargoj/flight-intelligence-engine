@@ -1,0 +1,6 @@
+feedparser
+requests
+amadeus
+python-dotenv
+jinja2
+resend

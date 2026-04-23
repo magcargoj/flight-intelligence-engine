@@ -1,0 +1,31 @@
+.xrayHtml {
+  position: relative;
+  z-index: 1;
+}
+
+.xrayHtml.xrayBorders {
+  box-shadow: 0 0 0 1px rgba(0,0,0,.20) !important;
+}
+
+.xrayJsonPath.xrayJsonPath {
+  display: inline-block !important;
+}
+
+.xrayHtml:hover, .xrayHtmlHovered {
+  background-color: rgba(0,0,0,.03) !important;
+}
+
+.xrayJson:hover, .xrayJsonHovered {
+  background-color: rgba(58,61,64,.34);
+}
+
+.xrayJsonFocused {
+  transition: box-shadow 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 0 0 1px #ff0000;
+}
+
+.xrayHtml.xrayHtmlFocused, .xrayHtmlFocused {
+  transition: box-shadow 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 0 0 3px #ff0000 !important;
+  z-index: 2;
+}

@@ -1,0 +1,161 @@
+/* Block default focus behaviors */
+
+document.addEventListener("mousedown", {
+  handleEvent: function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
+/* Block default click events */
+document.addEventListener("click", {
+  handleEvent: function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
+const hash = window.location.hash.substr(1);
+let { id, highlight, smoothScrollToFocus } = hash.split("&").reduce((acc, param) => {
+  const [key, value] = param.split("=");
+  if (value !== "undefined") acc[key] = value;
+  return acc;
+}, {});
+
+if (id === undefined) id = "";
+
+if (!highlight) {
+  if (window.parent.PlaygroundComponent && window.parent.PlaygroundComponent.state.highlight) {
+    highlight = window.parent.PlaygroundComponent.state.highlight;
+    smoothScrollToFocus = true;
+  } else if (window.parent.DocumentationDemoComponent && window.parent.DocumentationDemoComponent.state.parameters.highlight) {
+    highlight = window.parent.DocumentationDemoComponent.state.parameters.highlight;
+    smoothScrollToFocus = true;
+  }
+}
+
+const getOffsets = element => {
+  let offsetTop = 0;
+  let offsetLeft = 0;
+  while(element) {
+    offsetTop += element.offsetTop;
+    offsetLeft += element.offsetLeft;
+    element = element.offsetParent;
+  }
+  return { offsetTop, offsetLeft };
+}
+
+const escapeJsonPath = jsonPath => {
+  if (typeof CSS !== 'undefined' && CSS.escape) {
+    return CSS.escape(jsonPath);
+  }
+  return jsonPath.replace(/\[/g, "\\[").replace(/\]/g, "\\]").replace(/\./g, "\\.");
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  let jsonContainer = window.parent.document.querySelector(".jsonResults")
+
+  // When only a part of the HTML page is scrollable, and not the whole page
+  // to enable HTML X-Ray scrolling, add `.serpapi-scrollbox` class to the scrollable container
+  let htmlContainer = window.document.querySelector(".serpapi-scrollbox") || window;
+
+  /* Remove all focused states */
+  [jsonContainer, document].forEach(viewSide => {
+    viewSide && viewSide.addEventListener("mouseup", {
+      handleEvent: function (event) {
+        Array.from(jsonContainer.querySelectorAll(".xrayJsonFocused")).forEach((jsonOldEl, index) => {
+          jsonOldEl.classList.remove("xrayJsonFocused");
+          event.preventDefault();
+        });
+        Array.from(document.querySelectorAll(".xrayHtmlFocused")).forEach((htmlOldEl, index) => {
+          htmlOldEl.classList.remove("xrayHtmlFocused");
+          event.preventDefault();
+        });
+      }
+    }, true);
+  });
+
+  let foundHighlight = false;
+  for (let htmlEl of document.querySelectorAll("[xray-json-path]")) {
+    let jsonPath = htmlEl.getAttribute("xray-json-path");
+    let jsonEl = window.parent.document.querySelector((id ? ".json-id-" + id + " " : "") + "#" + escapeJsonPath(jsonPath));
+    if (jsonEl == null) {
+      console.log("[X-Ray] Binding error. No JSON field at JSON path: " +  jsonPath);
+      console.log("[X-Ray] From HTML element: ");
+      console.log(htmlEl);
+      continue;
+    }
+    jsonEl.classList.add("xrayJson");
+
+    if (!foundHighlight && highlight && (jsonPath === highlight || jsonPath === highlight + "[0]")) {
+      foundHighlight = true;
+      const behavior = smoothScrollToFocus ? "smooth" : "auto";
+      
+      htmlEl.classList.add("xrayHtmlFocused");
+      jsonEl.classList.add("xrayJsonFocused");
+      jsonContainer.scroll({ top: jsonEl.offsetTop - 50, behavior });
+      const htmlContainerOffsets = getOffsets(htmlEl);
+      htmlContainer.scroll({ top: htmlContainerOffsets.offsetTop - 200, left: htmlContainerOffsets.offsetLeft - 50, behavior });
+    }
+
+    htmlEl.addEventListener("mouseover", {
+      handleEvent: function (event) {
+        jsonEl.classList.add("xrayJsonHovered");
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    htmlEl.addEventListener("mouseleave", {
+      handleEvent: function (event) {
+        jsonEl.classList.remove("xrayJsonHovered");
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    htmlEl.addEventListener("mouseup", {
+      handleEvent: function (event) {
+        htmlEl.classList.add("xrayHtmlFocused");
+        /* setTimeout ensures highlight effect on click is happening */
+        setTimeout(function() {
+          jsonEl.classList.add("xrayJsonFocused");
+        }, 0);
+        jsonContainer.scroll({top: jsonEl.offsetTop - 50, behavior: "smooth"});
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    jsonEl.addEventListener("mouseover", {
+      handleEvent: function (event) {
+        htmlEl.classList.add("xrayHtmlHovered");
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    jsonEl.addEventListener("mouseleave", {
+      handleEvent: function (event) {
+        htmlEl.classList.remove("xrayHtmlHovered");
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    jsonEl.addEventListener("mouseup", {
+      handleEvent: function (event) {
+        jsonEl.classList.add("xrayJsonFocused");
+        /* setTimeout ensures highlight effect on click is happening */
+        setTimeout(function() {
+          htmlEl.classList.add("xrayHtmlFocused");
+        }, 0);
+        
+        const offsets = getOffsets(htmlEl);
+        htmlContainer.scroll({top: offsets.offsetTop - 200, left: offsets.offsetLeft - 50, behavior: "smooth"});
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  }
+
+  // Show warning that highlight doesn't exist
+  if (!foundHighlight && highlight) {
+    console.log("Warning: Focused element is not found!")
+  }
+});
